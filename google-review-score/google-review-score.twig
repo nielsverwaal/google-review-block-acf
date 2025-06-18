@@ -3,44 +3,42 @@
 {% block block__inner %}
 <div class="google-review-score">
     {% set score = data.score|default(0) %}
-    {% set link_to_reviews = data.link_to_reviews %}
-    {% set review_link = data.review_link %}
-    {% set button_text = data.link_to_reviews %}
-    {% set button_text = data.button_text %}
-{% set review_count = data.review_count|default(0) %}
+    {% set review_count = data.review_count|default(0) %}
+    {% set button_text = data.button_text|default('Review ons!') %}
+    {% set review_write_url = data.review_write_url %}
+    {% set review_read_url = data.review_read_url %}
     {% set rounded_score = (score * 2)|round / 2 %}
 
-<div class="google-review-score" role="img" aria-label="{{ score }}/5 op basis van {{ review_count }} reviews">
-    <div class="stars" aria-hidden="true">
-        {% for i in 1..5 %}
-            {% if rounded_score >= i %}
-                {% include '@blocks/google-review-score/icons/star-full.svg' %}
-            {% elseif rounded_score >= i - 0.5 %}
-                {% include '@blocks/google-review-score/icons/star-half.svg' %}
+    <div class="google-review-score-display" role="img" aria-label="{{ score }}/5 op basis van {{ review_count }} reviews">
+        <div class="stars" aria-hidden="true">
+            {% for i in 1..5 %}
+                {% if rounded_score >= i %}
+                    {% include '@blocks/google-review-score/icons/star-full.svg' %}
+                {% elseif rounded_score >= i - 0.5 %}
+                    {% include '@blocks/google-review-score/icons/star-half.svg' %}
+                {% else %}
+                    {% include '@blocks/google-review-score/icons/star-empty.svg' %}
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="score-text">
+            {% if data.show_review_link %}
+                <a href="{{ review_read_url }}" target="_blank" rel="noopener" style="text-decoration: underline;" aria-label="Google beoordeling: {{ score }} van 5 sterren, gebaseerd op {{ review_count }} gebruikersreviews".>
+                    {{ score }}/5 (op basis van {{ review_count }} reviews)
+                </a>
             {% else %}
-                {% include '@blocks/google-review-score/icons/star-empty.svg' %}
+                {{ score }}/5 (op basis van {{ review_count }} reviews)
             {% endif %}
-        {% endfor %}
+        </div>
     </div>
-    <div class="score-text">
-    {% if link_to_reviews %}
-        <a href="{{ link_to_reviews }}" target="_blank" style="text-decoration:underline;" rel="noopener noreferrer">
-        {{ score }}/5 (op basis van {{ review_count }} reviews)</a>
-        {% else %}
-        {{ score }}/5 (op basis van {{ review_count }} reviews)
-        {% endif %}
-    </div>
-    {% if review_link %}
-    <div class="wp-block-button is-style-arrow">
-    <a href="{{ review_link }}" class="wp-block-button__link has-red-color has-gold-background-color has-text-color has-background theme-button" role="button" target="_blank" rel="noopener noreferrer">
-    {% if button_text %}
-    {{ button_text }}
-    {% else %}
-    Beoordeel ons!
-    {% endif %}
-    </a>
-      </div>
+
+    {% if data.show_review_button %}
+        <div class="wp-block-button is-style-arrow">
+            <a href="{{ review_write_url }}" class="wp-block-button__link has-white-color has-totem-pole-background-color has-text-color has-background theme-button" role="button" aria-label="Review ons op Google" target="_blank" rel="noopener noreferrer">
+                {{ button_text }}
+            </a>
+        </div>
     {% endif %}
 </div>
-
 {% endblock %}

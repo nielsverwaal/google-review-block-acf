@@ -14,52 +14,38 @@ use StoutLogic\AcfBuilder\FieldsBuilder;
 
 class Google_Review_Score_Block extends BlockRenderer
 {
-    /**
-     * The name of the block.
-     * This needs to be the same as the folder and file name.
-     */
     const NAME = 'google-review-score';
-
-    /**
-     * Extend the base context of our block.
-     * With this function we can add for example a query or
-     * other custom content.
-     *
-     * @param array $context      Holds the block data.
-     * @return array  $context    Returns the array with the extra content that merges into the original block context.
-     */
 
     public function block_context($context): array
     {
+        $block_id = $context['block']['id'] ?? null;
 
-        $place_id = get_field('place_id') ? get_field('place_id') : null;
-        $api_key = get_field('api_key') ? get_field('api_key') : null;
-        $review_link = get_field('review_link');
-        $link_to_reviews = get_field('show_reviews_link');
-        $review_link = get_field('review_link');
-        $button_text = get_field('button_text');
+        $place_id = get_field('place_id', $block_id);
+        $api_key = get_field('api_key', $block_id);
+        $button_text = get_field('button_text', $block_id);
 
+        $show_review_button = get_field('show_review_button', $block_id);
+        $show_review_link = get_field('show_review_link', $block_id);
+
+        // Genereer links automatisch
+        $review_read_url = 'https://www.google.com/maps/place/?q=place_id:' . $place_id;
+        $review_write_url = 'https://search.google.com/local/writereview?placeid=' . $place_id;
+
+        // Review data ophalen
         $review_data = ($place_id && $api_key) ? $this->get_google_review_data($place_id, $api_key) : null;
-        $context['data']['score'] = $review_data['rating'] ?? null;
-        $context['data']['review_count'] = $review_data['total'] ?? null;
-        $context['data']['review_link'] = $review_link;
-        $context['data']['button_text'] = $button_text;
-        $context['data']['link_to_reviews'] = $link_to_reviews;
 
-        // $allowed_blocks  = apply_filters("wp-lemon/filter/block/{$this->slug}/allowed-blocks", ['core/heading', 'core/paragraph']);
-        $args = [
-            // 'InnerBlocks'     => '<InnerBlocks allowedBlocks="' . esc_attr(wp_json_encode($allowed_blocks)) . '" />',
-        ];
+        $context['data'] = array_merge($context['data'] ?? [], [
+            'score'             => $review_data['rating'] ?? null,
+            'review_count'      => $review_data['total'] ?? null,
+            'review_read_url'   => $review_read_url,
+            'review_write_url'  => $review_write_url,
+            'button_text'       => $button_text ?: 'Review ons!',
+            'show_review_button' => $show_review_button ?? 1,
+            'show_review_link'  => $show_review_link ?? 1,
+        ]);
 
-        return array_merge($context, $args);
+        return $context;
     }
-
-    /**
-     * Register fields to the block.
-     *
-     * @link https://github.com/StoutLogic/acf-builder
-     * @return FieldsBuilder
-     */
 
     public function add_fields(): FieldsBuilder
     {
@@ -74,21 +60,22 @@ class Google_Review_Score_Block extends BlockRenderer
                 'instructions' => 'Plak hier je Google Places API key.',
                 'required' => 1,
             ])
-            ->addUrl('review_link', [
-                'label' => 'Review link',
-                'instructions' => 'Plak hier je reviewlink om een knop te laten zien zodat mensen een review kunnen plaatsen.',
-                'required' => 0,
-            ])
             ->addText('button_text', [
                 'label' => 'Review button tekst',
                 'instructions' => 'Als je iets anders dan de standaard wilt, voer hier dan je eigen tekst in.',
                 'required' => 0,
             ])
-            ->addUrl('show_reviews_link', [
-                'label' => 'Link naar de Google reviews',
-                'instructions' => 'Plak hier je de link om de reviews te lezen (is een hele lange)',
-                'required' => 0,
+            ->addTrueFalse('show_review_button', [
+                'label' => 'Toon review-knop',
+                'ui'    => 1,
+                'default_value' => 1,
+            ])
+            ->addTrueFalse('show_review_link', [
+                'label' => 'Toon link naar alle reviews',
+                'ui'    => 1,
+                'default_value' => 1,
             ]);
+
         return $this->registered_fields;
     }
 
@@ -99,6 +86,7 @@ class Google_Review_Score_Block extends BlockRenderer
         if ($cached !== false) {
             return $cached;
         }
+
         $fields = 'rating,user_ratings_total';
         $lang = 'nl';
         $url = "https://maps.googleapis.com/maps/api/place/details/json?placeid={$place_id}&fields={$fields}&language={$lang}&key={$api_key}";
@@ -115,7 +103,7 @@ class Google_Review_Score_Block extends BlockRenderer
 
         $data = [
             'rating' => $body['result']['rating'],
-            'total' => $body['result']['user_ratings_total'],
+            'total'  => $body['result']['user_ratings_total'],
         ];
 
         set_transient($transient_key, $data, DAY_IN_SECONDS);
@@ -124,7 +112,4 @@ class Google_Review_Score_Block extends BlockRenderer
     }
 }
 
-/**
- * Initialiseer de block class
- */
 new Google_Review_Score_Block();
